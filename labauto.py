@@ -121,9 +121,10 @@ def lab_function():
 	x = 1
 	listOfLabs = []
 	confidence = 0.95
+	downCoords = pyautogui.locateCenterOnScreen('ctrlfdown.png', confidence = 0.9)
 	#The lab reading function loops using iterationCount in order to successfully pull every lab that the patient has
 	while x < int(iterationCount):
-		pyautogui.click(pyautogui.locateCenterOnScreen('ctrlfdown.png', confidence = 0.9))
+		pyautogui.click(downCoords)
 
 		#The location of the highlighted word "labs" is found as a tuple.
 		labsLocationTuple = pyautogui.locateOnScreen("labshighlight.png", confidence = confidence)
@@ -151,7 +152,6 @@ def lab_function():
 		#Clicking the check mark next to the lab to remove it from the printing list
 
 		pyautogui.click(35,(leftLabsLocationDict["top"]+15))
-		pyautogui.click(1512, 107)
 
 		x+=1
 
@@ -200,6 +200,5 @@ while True:
     elif keyboard.read_key() == "esc":
     	print("Program terminated.")
     	break
-
 
 
