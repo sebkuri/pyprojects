@@ -29,20 +29,24 @@ def tupleModifier2(iterationTuple):
 	step1[0] = step1[1]
 	step1[1] = placeholder
 
-	mssDict = {"top": step1[0], "left": 1465, "width":step1[2]-60, "height":step1[3]}
+	mssDict = {"top": step1[0]-10, "left": 1450, "width":step1[2]-20, "height":step1[3]+25}
 
 	return mssDict
 
 
 #Image scaling function to increase the pixels of the input image
-def set_image_dpi(file_path):
-	im = Image.open(file_path)
-	length_x, width_y = im.size
-	factor = min(1, float(1024.0 / length_x))
-	size = int(factor * length_x), int(factor * width_y)
-	im_resized = im.resize(size, Image.Resampling.LANCZOS)
-	return im_resized
+def set_image_dpi(file_path, file_name):
+	im = cv2.imread(file_path)
+	im = cv2.resize(im, None, fx=1.2, fy=1.2, interpolation=cv2.INTER_CUBIC)
+	cv2.imwrite(file_name, im)
 
+#def set_image_dpi(file_path):
+	#im = Image.open(file_path)
+	#length_x, width_y = im.size
+	#factor = min(1, float(1024.0 / length_x))
+	#size = int(factor * length_x), int(factor * width_y)
+	#im_resized = im.resize(size, Image.Resampling.LANCZOS)
+	#return im_resized
 
 
 def lab_function():
@@ -74,7 +78,7 @@ def lab_function():
 	images = ["crop1.png", "crop2.png", "crop3.png", "crop4.png"]
 	i = 1
 	for image in images:
-		(set_image_dpi(image)).save(f"crop{i}processed.png")
+		set_image_dpi(image, f"crop{i}processed.png")		
 		i+=1
 
 	#Perform OCR on the images, then add the OCR phrases into a list
@@ -94,6 +98,7 @@ def lab_function():
 	#This section begins lab pulling. Hotkey to ctrl+f the labs page, then labs is input into the parameter field
 	pyautogui.hotkey("ctrl","f")
 	time.sleep(0.05)
+	pyautogui.press('backspace')
 	pyautogui.write("labs", interval = 0.01)
 
 	iterationPreLocation = pyautogui.locateOnScreen('ctrlfanchor.png')
@@ -107,14 +112,15 @@ def lab_function():
 		output = "iterationImg.png"
 		mss.tools.to_png(iterationImg.rgb, iterationImg.size, output = output)
 	
-	(set_image_dpi("iterationImg.png")).save("processedIterationImg.png")
+	set_image_dpi("iterationImg.png", "processedIterationImg.png")
 
-	iterationText = reader.readtext("iterationImg.png", detail = 0)
+	iterationText = reader.readtext("processedIterationImg.png", detail = 0)
 
-	#The number of times is saved as the variable iterationCount, to determine how many times a lab name needs to be read
+	#The number of times is saved as the variable labIterationCount, to determine how many times a lab name needs to be read
 
-	iterationCount = str(iterationText)[4:5]
-	print("Iteration Count = "+str(iterationCount))
+	print(iterationText)
+	labIterationCount = str(iterationText)[4:5]
+	print("Iteration Count = "+str(labIterationCount))
 	
 
 
@@ -122,8 +128,8 @@ def lab_function():
 	listOfLabs = []
 	confidence = 0.95
 	downCoords = pyautogui.locateCenterOnScreen('ctrlfdown.png', confidence = 0.9)
-	#The lab reading function loops using iterationCount in order to successfully pull every lab that the patient has
-	while x < int(iterationCount):
+	#The lab reading function loops using labIterationCount in order to successfully pull every lab that the patient has
+	while x < int(labIterationCount):
 		pyautogui.click(downCoords)
 
 		#The location of the highlighted word "labs" is found as a tuple.
@@ -142,7 +148,7 @@ def lab_function():
 			mss.tools.to_png(labimg.rgb, labimg.size, output = output)
 
 		#Preprocessing of lab name screenshot
-		(set_image_dpi(f"labname{x}.png")).save(f"labprocessed{x}.png")
+		set_image_dpi(f"labname{x}.png", f"labprocessed{x}.png")
 
 		#OCR reading of lab name
 		cutlab1 = str((reader.readtext(f"labprocessed{x}.png", detail = 0))).split("task", 1)[0]
@@ -197,6 +203,8 @@ print("OCR has been initialized. Press ctrl+enter to grab text from defined scre
 while True:
     if keyboard.is_pressed("ctrl+enter"):
         lab_function()
+        #Things left to automate: Uncheck Consults, print patient info + prescriptions + imaging, 
+
     elif keyboard.read_key() == "esc":
     	print("Program terminated.")
     	break
