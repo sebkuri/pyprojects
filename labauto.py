@@ -18,7 +18,7 @@ def tupleModifier(labsTuple):
 	step1[0] = step1[1]
 	step1[1] = placeholder
 
-	mssDict = {"top": step1[0], "left": 40, "width":step1[2]+600, "height":step1[3]}
+	mssDict = {"top": step1[0], "left": 42, "width":600, "height":26}
 
 	return mssDict
 
@@ -29,24 +29,29 @@ def tupleModifier2(iterationTuple):
 	step1[0] = step1[1]
 	step1[1] = placeholder
 
-	mssDict = {"top": step1[0]-10, "left": 1450, "width":step1[2]-20, "height":step1[3]+25}
+	mssDict = {"top": step1[0]-10, "left": step1[1]-100, "width":75, "height":50}
 
 	return mssDict
 
 
 #Image scaling function to increase the pixels of the input image
-def set_image_dpi(file_path, file_name):
+def set_image_dpi(file_path, file_name, factor):
 	im = cv2.imread(file_path)
-	im = cv2.resize(im, None, fx=1.2, fy=1.2, interpolation=cv2.INTER_CUBIC)
+	im = cv2.resize(im, None, fx=factor, fy=factor, interpolation=cv2.INTER_CUBIC)
 	cv2.imwrite(file_name, im)
 
-#def set_image_dpi(file_path):
-	#im = Image.open(file_path)
-	#length_x, width_y = im.size
-	#factor = min(1, float(1024.0 / length_x))
-	#size = int(factor * length_x), int(factor * width_y)
-	#im_resized = im.resize(size, Image.Resampling.LANCZOS)
-	#return im_resized
+
+
+def find_on_screen(needleImg):
+	with mss.mss() as sct:
+		screenshot = sct.shot()
+		needleImg = cv2.imread(needleImg)
+		haystackImg = cv2.imread('monitor-1.png')
+		res =  res = cv2.matchTemplate(haystackImg, needleImg, cv2.TM_CCOEFF_NORMED)
+		min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+		return max_loc
+
+
 
 
 def lab_function():
@@ -78,7 +83,7 @@ def lab_function():
 	images = ["crop1.png", "crop2.png", "crop3.png", "crop4.png"]
 	i = 1
 	for image in images:
-		set_image_dpi(image, f"crop{i}processed.png")		
+		set_image_dpi(image, f"crop{i}processed.png", 1.2)		
 		i+=1
 
 	#Perform OCR on the images, then add the OCR phrases into a list
@@ -101,7 +106,7 @@ def lab_function():
 	pyautogui.press('backspace')
 	pyautogui.write("labs", interval = 0.01)
 
-	iterationPreLocation = pyautogui.locateOnScreen('ctrlfanchor.png')
+	iterationPreLocation = find_on_screen('ctrlfanchor.png')
 
 
 
@@ -112,14 +117,14 @@ def lab_function():
 		output = "iterationImg.png"
 		mss.tools.to_png(iterationImg.rgb, iterationImg.size, output = output)
 	
-	set_image_dpi("iterationImg.png", "processedIterationImg.png")
+	set_image_dpi("iterationImg.png", "processedIterationImg.png", 5)
 
 	iterationText = reader.readtext("processedIterationImg.png", detail = 0)
 
 	#The number of times is saved as the variable labIterationCount, to determine how many times a lab name needs to be read
 
 	print(iterationText)
-	labIterationCount = str(iterationText)[4:5]
+	labIterationCount = ((str(iterationText)[4:len(str(iterationText))]).split("'", 1))[0]
 	print("Iteration Count = "+str(labIterationCount))
 	
 
@@ -133,12 +138,14 @@ def lab_function():
 		pyautogui.click(downCoords)
 
 		#The location of the highlighted word "labs" is found as a tuple.
-		labsLocationTuple = pyautogui.locateOnScreen("labshighlight.png", confidence = confidence)
-	
-		while labsLocationTuple == None:
-			confidence -= 0.01
-			labsLocationTuple = pyautogui.locateOnScreen("labshighlight.png", confidence = confidence)
 
+		#labsLocationTuple = pyautogui.locateOnScreen("labshighlight.png", confidence = confidence)
+	
+		#while labsLocationTuple == None:
+			#confidence -= 0.01
+			#labsLocationTuple = pyautogui.locateOnScreen("labshighlight.png", confidence = confidence)
+
+		labsLocationTuple = find_on_screen("labshighlight.png")
 		leftLabsLocationDict = tupleModifier(labsLocationTuple)
 		
 		#Screenshot is taken of the lab name corresponding to the highlighted "labs" text on the right
@@ -148,7 +155,7 @@ def lab_function():
 			mss.tools.to_png(labimg.rgb, labimg.size, output = output)
 
 		#Preprocessing of lab name screenshot
-		set_image_dpi(f"labname{x}.png", f"labprocessed{x}.png")
+		set_image_dpi(f"labname{x}.png", f"labprocessed{x}.png", 1.2)
 
 		#OCR reading of lab name
 		cutlab1 = str((reader.readtext(f"labprocessed{x}.png", detail = 0))).split("task", 1)[0]
@@ -158,7 +165,6 @@ def lab_function():
 		#Clicking the check mark next to the lab to remove it from the printing list
 
 		pyautogui.click(35,(leftLabsLocationDict["top"]+15))
-
 		x+=1
 
 
@@ -197,7 +203,7 @@ def lab_function():
 #Following section has setup details, as well as waits for user input of enter to start OCR on screen.
 print("Please wait until OCR is initialized.")
 reader = easyocr.Reader(['en'])
-print("OCR has been initialized. Press ctrl+enter to grab text from defined screen areas.")
+print("OCR has been initialized. Press ctrl+enter to begin.")
 
 
 while True:
