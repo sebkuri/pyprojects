@@ -8,7 +8,7 @@ from PIL import Image
 import pyautogui
 import keyboard
 import time
-
+from playsound import playsound
 
 
 #Takes the tuple returned by the location function and converts it into a calibrated dictionary that can be inputted into MSS to screen capture lab names
@@ -41,6 +41,7 @@ def set_image_dpi(file_path, file_name, factor):
 	cv2.imwrite(file_name, im)
 
 
+#Uses OpenCV in order to find an input image in the screen.
 
 def find_on_screen(needleImg):
 	with mss.mss() as sct:
@@ -127,6 +128,9 @@ def lab_function():
 	labIterationCount = ((str(iterationText)[4:len(str(iterationText))]).split("'", 1))[0]
 	print("Iteration Count = "+str(labIterationCount))
 	
+	if labIteraitonCount == 0:
+		print("No labs found.")
+		return
 
 
 	x = 1
@@ -190,10 +194,8 @@ def lab_function():
 	
 	pyautogui.click(437, 539)
 	pyautogui.hotkey("ctrl", "p")
-	time.sleep(3)
 
 
-	#pyautogui.click(pyautogui.locateCenterOnScreen("print.png"))
 
 
 
@@ -203,16 +205,49 @@ def lab_function():
 #Following section has setup details, as well as waits for user input of enter to start OCR on screen.
 print("Please wait until OCR is initialized.")
 reader = easyocr.Reader(['en'])
-print("OCR has been initialized. Press ctrl+enter to begin.")
+print("OCR has been initialized. Press ctrl+enter to run a lab. Press ctrl+] to make bot search for patients to check out.")
 
 
 while True:
-    if keyboard.is_pressed("ctrl+enter"):
-        lab_function()
-        #Things left to automate: Uncheck Consults, print patient info + prescriptions + imaging, 
+	if keyboard.is_pressed("ctrl+enter"):
+		lab_function()
+		#Things left to automate: Uncheck Consults, print patient info + prescriptions + imaging, 
 
-    elif keyboard.read_key() == "esc":
-    	print("Program terminated.")
-    	break
+	#Esc to get out of the program
+	elif keyboard.read_key() == "esc":
+		print("Program terminated.")
+		break
+
+	#Ctrl + ] goes into the patient checkout detection loop
+	elif keyboard.is_pressed("ctrl+]"):
+		while True:
+			#This section detects how many instances of the word "check-out" are found on the screen, then compares it to 0. If it is not 0, then a chime is played to alert volunteer to check out patient.
+			pyautogui.hotkey("ctrl","f")
+			time.sleep(0.05)
+			pyautogui.write("check-out")
+			coiterationPreLocation = find_on_screen('ctrlfanchor.png')
+
+			with mss.mss() as sct:
+				coiterationImgLocation = tupleModifier2(coiterationPreLocation)
+				coiterationImg = sct.grab(coiterationImgLocation)
+				output = "checkoutiterationImg.png"
+				mss.tools.to_png(coiterationImg.rgb, coiterationImg.size, output = output)
+				
+		
+			set_image_dpi("checkoutiterationImg.png", "processedcheckoutIterationImg.png", 5)
+
+			coiterationText = reader.readtext("processedcheckoutIterationImg.png", detail = 0)
+
+			print(coiterationText)
+			coIterationCount = ((str(coiterationText)[4:len(str(coiterationText))]).split("'", 1))[0]
+			print("Iteration Count = "+str(coIterationCount))
+
+			if(int(coIterationCount) != 0):
+				print("Patient to be checked out.")
+				playsound('alert1.mp3')
+				break
+
+			time.sleep(10)
+
 
 
