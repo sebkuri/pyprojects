@@ -12,8 +12,8 @@ from playsound import playsound
 
 
 #Takes the tuple returned by the location function and converts it into a calibrated dictionary that can be inputted into MSS to screen capture lab names
-def tupleModifier(labsTuple):
-	step1 = list(labsTuple)
+def tupleModifier(labs_tuple):
+	step1 = list(labs_tuple)
 	placeholder = step1[0] 
 	step1[0] = step1[1]
 	step1[1] = placeholder
@@ -32,6 +32,18 @@ def tupleModifier2(iterationTuple):
 	mssDict = {"top": step1[0]-10, "left": step1[1]-100, "width":75, "height":50}
 
 	return mssDict
+
+#Takes the tuple returned by the location function and converts it into a calibrated dictionary to click the print button on Athena
+def tupleModifier3(printingTuple):
+	step1 = list(printingTuple)
+	placeholder = step1[0]
+	step1[0] = step1[1]
+	step1[1] = placeholder
+
+	mssDict = {"top": step1[0], "left": step1[1]}
+
+	return mssDict
+
 
 
 #Image scaling function to increase the pixels of the input image
@@ -99,11 +111,12 @@ def lab_function():
 	patient_data[1] = str(patient_data[1])[5:6] 
 
 	#Print the list 
-	print(patient_data)
-
+	#print(patient_data)
 	#This section begins lab pulling. Hotkey to ctrl+f the labs page, then labs is input into the parameter field
-	pyautogui.hotkey("ctrl","f")
-	time.sleep(0.05)
+	#pyautogui.hotkey("ctrl","f")
+
+
+	pyautogui.click(1407, 110, clicks = 3)
 	pyautogui.press('backspace')
 	pyautogui.write("labs", interval = 0.01)
 
@@ -124,30 +137,21 @@ def lab_function():
 
 	#The number of times is saved as the variable labIterationCount, to determine how many times a lab name needs to be read
 
-	print(iterationText)
+	#print(iterationText)
 	labIterationCount = ((str(iterationText)[4:len(str(iterationText))]).split("'", 1))[0]
-	print("Iteration Count = "+str(labIterationCount))
+	#print("Iteration Count = "+str(labIterationCount))
 	
-	if labIteraitonCount == 0:
+	if labIterationCount == 0:
 		print("No labs found.")
 		return
 
 
 	x = 1
 	listOfLabs = []
-	confidence = 0.95
 	downCoords = pyautogui.locateCenterOnScreen('ctrlfdown.png', confidence = 0.9)
 	#The lab reading function loops using labIterationCount in order to successfully pull every lab that the patient has
 	while x < int(labIterationCount):
 		pyautogui.click(downCoords)
-
-		#The location of the highlighted word "labs" is found as a tuple.
-
-		#labsLocationTuple = pyautogui.locateOnScreen("labshighlight.png", confidence = confidence)
-	
-		#while labsLocationTuple == None:
-			#confidence -= 0.01
-			#labsLocationTuple = pyautogui.locateOnScreen("labshighlight.png", confidence = confidence)
 
 		labsLocationTuple = find_on_screen("labshighlight.png")
 		leftLabsLocationDict = tupleModifier(labsLocationTuple)
@@ -173,31 +177,102 @@ def lab_function():
 
 
 	#lab list is printed
-	for lab in listOfLabs:
-		print(lab)
+	#for lab in listOfLabs:
+		#print(lab)
 
 	#Inputs data into lab sheet then pull up the print screen.
 	pyautogui.click(443, 19)
-	pyautogui.click(837, 463, clicks = 3)
+	pyautogui.click(837, 478, clicks = 3)
+	time.sleep(0.1)
 	pyautogui.write(patient_data[0])
-	pyautogui.click(791, 486, clicks = 3)
+	pyautogui.click(791, 501, clicks = 3)
+	time.sleep(0.1)
 	pyautogui.write(patient_data[3])
-	pyautogui.click(928, 485, clicks = 3)
+	pyautogui.click(928, 500, clicks = 3)
+	time.sleep(0.1)
 	pyautogui.write(patient_data[2])
-	pyautogui.click(1003, 484, clicks = 3)
+	pyautogui.click(1003, 499, clicks = 3)
+	time.sleep(0.1)
 	pyautogui.write(patient_data[1])
-	pyautogui.click(863, 805, clicks = 3)
+	pyautogui.click(863, 820, clicks = 3)
 
 	for lab in listOfLabs:
 		pyautogui.write(lab)
 		pyautogui.write("   |||   ")
 	
 	pyautogui.click(437, 539)
-	pyautogui.hotkey("ctrl", "p")
+	pyautogui.click(157,20)
 
 
 
 
+
+
+
+
+#This function unchecks the referrals so that they are not printed out later with the patient info, prescriptions, etc
+def referrals():
+
+	#Pulls up ctrl+f screen for referrals
+
+	pyautogui.hotkey("ctrl","f")
+	time.sleep(0.05)
+	pyautogui.press('backspace')
+	pyautogui.write("referrals", interval = 0.01)
+
+	#Finds location of iteration number
+
+	iterationPreLocation = find_on_screen('ctrlfanchor.png')
+
+	with mss.mss() as sct:
+		iterationImgLocation = tupleModifier2(iterationPreLocation)
+		iterationImg = sct.grab(iterationImgLocation)
+		output = "iterationImg.png"
+		mss.tools.to_png(iterationImg.rgb, iterationImg.size, output = output)
+	
+	set_image_dpi("iterationImg.png", "processedIterationImg.png", 5)
+
+	iterationText = reader.readtext("processedIterationImg.png", detail = 0)
+
+	#The number of times is saved as the variable referralsIterationCount, to determine how many times a referral needs to be unchecked
+
+	#print(iterationText)
+	referralsIterationCount = ((str(iterationText)[4:len(str(iterationText))]).split("'", 1))[0]
+	#print("Referrals Iteration Count = "+str(referralsIterationCount))
+	
+	if referralsIterationCount == 0:
+		print("No referrals found.")
+		return
+
+	x = 1
+	downCoords = pyautogui.locateCenterOnScreen('ctrlfdown.png', confidence = 0.9)
+	#The referral reading function loops using referralsIterationCount in order to successfully uncheck every referral
+	while x <= int(referralsIterationCount):
+
+		referralsLocationTuple = find_on_screen("referralshighlight.png")
+		leftReferralsLocationDict = tupleModifier(referralsLocationTuple)
+		
+
+		#Clicking the check mark next to the referral to remove it from the printing list
+
+		pyautogui.click(35,(leftReferralsLocationDict["top"]+15))
+		pyautogui.click(downCoords)
+		x+=1
+
+	return
+
+#This function simply clicks the Print and Submit button in Athena to print patient info + prescriptions + imaging
+
+def printout():
+	pyautogui.click(1407, 110, clicks = 3)
+	pyautogui.press('backspace')
+	pyautogui.write("Selected and Mark", interval = 0.01)
+
+	printingPreLocation = find_on_screen("printinghighlight.png")
+	printingLocation = tupleModifier3(printingPreLocation)
+	pyautogui.click(printingLocation["left"], printingLocation["top"])
+
+	return
 
 
 
@@ -210,8 +285,9 @@ print("OCR has been initialized. Press ctrl+enter to run a lab. Press ctrl+] to 
 
 while True:
 	if keyboard.is_pressed("ctrl+enter"):
+		referrals()
 		lab_function()
-		#Things left to automate: Uncheck Consults, print patient info + prescriptions + imaging, 
+		printout()
 
 	#Esc to get out of the program
 	elif keyboard.read_key() == "esc":
